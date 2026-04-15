@@ -1,0 +1,183 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Teacher {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  school             String
+  email              String              @unique
+  password           String
+  subjects           String
+  isClassTeacher     Boolean
+  className          String?
+  createdAt          DateTime            @default(now())
+
+  sessions           Session[]
+  documents          GeneratedDocument[]
+  createdClasses     SchoolClass[]       @relation("CreatedClasses")
+  classRoles         ClassTeacherRole[]
+  createdAttendances AttendanceRecord[]  @relation("AttendanceCreatedBy")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  teacherId Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model GeneratedDocument {
+  id                   Int      @id @default(autoincrement())
+  teacherId            Int
+  year                 Int      @default(2026)
+  term                 String
+  documentType         String   @default("Scheme of Work")
+  subject              String
+  weeks                Int
+  lessonsPerWeek       Int
+  classLevel           String?
+  referenceBook        String?
+  breaksJson           String?  @default("[]")
+  schemeHeadersJson    String?  @default("[]")
+  schemeRowsJson       String?  @default("[]")
+  midtermBreak         String?
+  examBreak            String?
+  firstTeachingDay     String?
+  lastTeachingDay      String?
+  schemeText           String?
+  lessonPlanText       String?
+  recordOfWorkText     String?
+  learnersProgressText String?
+  createdAt            DateTime @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model MasterScheme {
+  id          Int      @id @default(autoincrement())
+  term        String
+  level       String
+  subject     String
+  headersJson String   @default("[]")
+  rowsJson    String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  @@unique([term, level, subject], name: "term_level_subject")
+}
+
+model SchoolClass {
+  id                  Int                 @id @default(autoincrement())
+  level               String
+  stream              String
+  createdById         Int
+  createdAt           DateTime            @default(now())
+
+  createdBy           Teacher             @relation("CreatedClasses", fields: [createdById], references: [id], onDelete: Cascade)
+  teacherRoles        ClassTeacherRole[]
+  students            Student[]
+  attendanceDays      AttendanceRecord[]
+  attendanceSummaries AttendanceSummary[]
+
+  @@unique([level, stream], name: "level_stream")
+}
+
+model ClassTeacherRole {
+  id          Int      @id @default(autoincrement())
+  classId     Int
+  teacherId   Int
+  roleType    String
+  subject     String?
+  createdAt   DateTime @default(now())
+
+  schoolClass SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, teacherId, roleType, subject], name: "class_teacher_role_subject")
+}
+
+model Student {
+  id                Int               @id @default(autoincrement())
+  classId           Int
+  admissionNumber   String
+  fullName          String
+  gender            String?
+  parentName        String?
+  parentPhone       String?
+  createdAt         DateTime          @default(now())
+
+  schoolClass       SchoolClass       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  attendanceEntries AttendanceEntry[]
+
+  @@unique([classId, admissionNumber], name: "class_admissionNumber")
+}
+
+model AttendanceRecord {
+  id          Int               @id @default(autoincrement())
+  classId     Int
+  date        DateTime
+  createdById Int
+  createdAt   DateTime          @default(now())
+
+  schoolClass SchoolClass       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy   Teacher           @relation("AttendanceCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  entries     AttendanceEntry[]
+
+  @@unique([classId, date], name: "class_date_attendance")
+}
+
+model AttendanceEntry {
+  id         Int              @id @default(autoincrement())
+  recordId   Int
+  studentId  Int
+  status     String
+  createdAt  DateTime         @default(now())
+
+  record     AttendanceRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, studentId], name: "record_student_attendance")
+}
+
+model AttendanceSummary {
+  id                     Int       @id @default(autoincrement())
+  classId                Int
+  periodType             String
+  periodKey              String
+  reportDate             DateTime?
+  year                   Int
+  term                   String?
+  weekLabel              String?
+  totalStudents          Int
+  totalPresent           Int
+  totalAbsent            Int
+  attendancePercentage   Float
+  mostAbsentStudentId    Int?
+  mostAbsentStudentName  String?
+  mostAbsentCount        Int       @default(0)
+  mostPresentStudentId   Int?
+  mostPresentStudentName String?
+  mostPresentCount       Int       @default(0)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  schoolClass SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, periodType, periodKey], name: "class_periodType_periodKey")
+}
