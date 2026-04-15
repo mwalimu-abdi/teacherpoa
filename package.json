@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:turbo": "next dev",
-    "build": "next build",
+    "build": "npx prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "railway:start": "npx prisma db push && next start"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.4.2",
