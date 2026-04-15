@@ -2,7 +2,26 @@ import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import prisma from "@/lib/prisma"
 
-async function getTeacherSession() {
+type TeacherSession = {
+  teacher: {
+    id: number
+  }
+  expiresAt: Date
+}
+
+type ClassItem = {
+  id: number
+  roleType: string
+  subject: string | null
+  createdAt: Date
+  schoolClass: {
+    id: number
+    level: string
+    stream: string
+  }
+}
+
+async function getTeacherSession(): Promise<TeacherSession | null> {
   const cookieStore = await cookies()
   const token = cookieStore.get("mh_session")?.value
 
@@ -26,7 +45,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
     }
 
-    const classes = await prisma.classTeacherRole.findMany({
+    const classes: ClassItem[] = await prisma.classTeacherRole.findMany({
       where: {
         teacherId: session.teacher.id,
       },
@@ -40,7 +59,7 @@ export async function GET() {
       ],
     })
 
-    const formatted = classes.map((item) => ({
+    const formatted = classes.map((item: ClassItem) => ({
       id: item.id,
       classId: item.schoolClass.id,
       level: item.schoolClass.level,
@@ -82,10 +101,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (
-      roleType !== "Class Teacher" &&
-      roleType !== "Subject Teacher"
-    ) {
+    if (roleType !== "Class Teacher" && roleType !== "Subject Teacher") {
       return NextResponse.json(
         { error: "Invalid role selected." },
         { status: 400 }
