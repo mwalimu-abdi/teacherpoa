@@ -22,6 +22,9 @@ model Teacher {
   createdClasses     SchoolClass[]       @relation("CreatedClasses")
   classRoles         ClassTeacherRole[]
   createdAttendances AttendanceRecord[]  @relation("AttendanceCreatedBy")
+  passwordResetOtps  PasswordResetOtp[]
+  schoolApplications SchoolApplication[]
+  subscriptions      Subscription[]
 }
 
 model Admin {
@@ -180,4 +183,55 @@ model AttendanceSummary {
   schoolClass SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   @@unique([classId, periodType, periodKey], name: "class_periodType_periodKey")
+}
+
+model PasswordResetOtp {
+  id        Int      @id @default(autoincrement())
+  teacherId Int
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+}
+
+model SchoolApplication {
+  id            Int      @id @default(autoincrement())
+  teacherId     Int?
+  applicantName String
+  schoolName    String
+  phone         String
+  email         String
+  schoolType    String?
+  county        String?
+  studentCount  Int?
+  teacherCount  Int?
+  message       String?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  teacher Teacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+}
+
+model Subscription {
+  id               Int      @id @default(autoincrement())
+  teacherId        Int
+  planType         String   // "TERMLY" or "ONE_DOCUMENT"
+  year             Int?
+  term             String?
+  status           String   @default("pending") // pending, active, used, expired
+  amount           Int
+  documentsAllowed Int?
+  documentsUsed    Int      @default(0)
+  startedAt        DateTime @default(now())
+  expiresAt        DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@index([teacherId, status])
 }

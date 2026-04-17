@@ -30,7 +30,7 @@ yarn-error.log*
 
 # env files
 .env*
-!.env.example   # optional (if you create one)
+!.env.example
 
 # vercel
 .vercel
@@ -42,8 +42,10 @@ next-env.d.ts
 # prisma generated client (if using custom output)
 /lib/generated/prisma
 
-# 🔴 VERY IMPORTANT FOR YOUR PROJECT
 # SQLite database
+dev.db
+*.db
+*.sqlite
 data/dev.db
 data/*.db
 data/*.sqlite

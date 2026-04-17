@@ -3,10 +3,11 @@ import bcrypt from "bcryptjs"
 
 async function main() {
   const email = "admin@mwalimuhodari.com"
-  const plainPassword = "123456"
+  const plainPassword = "Admin@12345" // 🔑 change anytime you want
+
   const hashedPassword = await bcrypt.hash(plainPassword, 10)
 
-  const admin = await prisma.admin.upsert({
+  await prisma.admin.upsert({
     where: { email },
     update: {
       name: "Main Admin",
@@ -19,15 +20,15 @@ async function main() {
     },
   })
 
-  console.log("Admin ready:")
+  console.log("✅ Admin ready!")
+  console.log("👉 Login with:")
   console.log("Email:", email)
   console.log("Password:", plainPassword)
-  console.log(admin)
 }
 
 main()
   .catch((error) => {
-    console.error(error)
+    console.error("❌ CREATE ADMIN ERROR:", error)
     process.exit(1)
   })
   .finally(async () => {

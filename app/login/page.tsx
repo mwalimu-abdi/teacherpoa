@@ -44,7 +44,7 @@ export default function LoginPage() {
       if (res.ok) {
         setMessage("Login successful.")
         setMessageType("success")
-        window.location.href = "/dashboard"
+        window.location.href = "/dashboard/choose-plan"
         return
       }
 
@@ -146,10 +146,14 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* 🔥 FIXED FORGOT PASSWORD */}
             <div className="text-right">
-              <span className="cursor-pointer text-sm text-orange-500">
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-orange-500 hover:underline"
+              >
                 Forgot Password?
-              </span>
+              </Link>
             </div>
 
             {/* Button */}
