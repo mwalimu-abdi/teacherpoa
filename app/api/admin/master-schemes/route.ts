@@ -17,20 +17,22 @@ export async function GET(req: NextRequest) {
     const term = String(searchParams.get("term") || "").trim()
     const level = String(searchParams.get("level") || "").trim()
     const subject = String(searchParams.get("subject") || "").trim()
+    const referenceBook = String(searchParams.get("referenceBook") || "").trim()
 
-    if (!term || !level || !subject) {
+    if (!term || !level || !subject || !referenceBook) {
       return NextResponse.json(
-        { error: "term, level and subject are required" },
+        { error: "term, level, subject and referenceBook are required" },
         { status: 400 }
       )
     }
 
     const scheme = await prisma.masterScheme.findUnique({
       where: {
-        term_level_subject: {
+        term_level_subject_referenceBook: {
           term,
           level,
           subject,
+          referenceBook,
         },
       },
     })
@@ -63,12 +65,13 @@ export async function POST(req: NextRequest) {
     const term = String(body.term || "").trim()
     const level = String(body.level || "").trim()
     const subject = String(body.subject || "").trim()
+    const referenceBook = String(body.referenceBook || "").trim()
     const headers = body.headers
     const rows = body.rows
 
-    if (!term || !level || !subject) {
+    if (!term || !level || !subject || !referenceBook) {
       return NextResponse.json(
-        { error: "term, level and subject are required" },
+        { error: "term, level, subject and referenceBook are required" },
         { status: 400 }
       )
     }
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanedHeaders = headers.map((header: unknown) =>
-      String(header || "").trim()
+      String(header || "").trim() || "Untitled Column"
     )
 
     const cleanedRows = rows.map((row: unknown) => {
@@ -91,10 +94,11 @@ export async function POST(req: NextRequest) {
 
     const scheme = await prisma.masterScheme.upsert({
       where: {
-        term_level_subject: {
+        term_level_subject_referenceBook: {
           term,
           level,
           subject,
+          referenceBook,
         },
       },
       update: {
@@ -105,6 +109,7 @@ export async function POST(req: NextRequest) {
         term,
         level,
         subject,
+        referenceBook,
         headersJson: JSON.stringify(cleanedHeaders),
         rowsJson: JSON.stringify(cleanedRows),
       },

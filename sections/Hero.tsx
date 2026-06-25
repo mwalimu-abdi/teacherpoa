@@ -1,337 +1,254 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react"
+import Image from "next/image"
+import { motion, AnimatePresence } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { ArrowRight, Play } from "lucide-react"
 
-type Stage = "intro" | "merge" | "flip" | "wake" | "teacher";
+// ── Text content that cycles ────────────────────────────────────────────────
+type HeroSlide = {
+  eyebrow: string
+  title: string
+  highlight: string
+  subtitle: string
+}
 
-const flipFrames = [
-  "/hero/schemes-open-1.png",
-  "/hero/schemes-open-2.png",
-  "/hero/schemes-open-3.png",
-  "/hero/schemes-open-4.png",
-  "/hero/schemes-open-5.png",
-];
-
-const files = [
+const slides: HeroSlide[] = [
   {
-    id: "schemes",
-    src: "/hero/schemes-file.png",
-    alt: "TeacherPoa schemes of work file",
+    eyebrow: "AI built for the CBC curriculum",
+    title: "Spend Less Time Preparing.",
+    highlight: "Spend More Time Teaching.",
+    subtitle:
+      "Generate schemes of work, lesson plans, records of work, and assessments in minutes — fully aligned with the CBC curriculum.",
   },
   {
-    id: "lesson",
-    src: "/hero/lesson-plans-file.png",
-    alt: "TeacherPoa lesson plans file",
+    eyebrow: "Your documents, beautifully organized",
+    title: "Every Teaching Document,",
+    highlight: "One Smart Platform.",
+    subtitle:
+      "Create, store, and download professional teaching documents from anywhere, on any device.",
   },
   {
-    id: "records",
-    src: "/hero/records-file.png",
-    alt: "TeacherPoa records of work file",
+    eyebrow: "Trusted by teachers across Kenya",
+    title: "Join a Community",
+    highlight: "Built for Educators.",
+    subtitle:
+      "Thousands of teachers save hours every week with TeacherPoa. Start today and experience smarter document creation.",
   },
   {
-    id: "revision",
-    src: "/hero/revision-questions-file.png",
-    alt: "TeacherPoa revision questions file",
+    eyebrow: "Professional results instantly",
+    title: "Create Documents That",
+    highlight: "Look Truly Professional.",
+    subtitle:
+      "Export polished, ready-to-use teaching documents in seconds and walk into class fully prepared.",
   },
-];
+]
 
-export default function Hero() {
-  const [stage, setStage] = useState<Stage>("intro");
-  const [visibleCount, setVisibleCount] = useState(1);
-  const [flipStep, setFlipStep] = useState(0);
+// ── Letter-fall animation component ────────────────────────────────────────
+function FallingLetters({
+  text,
+  className = "",
+  baseDelay = 0,
+}: {
+  text: string
+  className?: string
+  baseDelay?: number
+}) {
+  // Split into words, animate letter by letter, preserve word spacing
+  return (
+    <span className={className} aria-label={text}>
+      {text.split(" ").map((word, wi) => (
+        <span key={wi} className="inline-block whitespace-nowrap">
+          {word.split("").map((char, ci) => {
+            const globalIndex =
+              text
+                .split(" ")
+                .slice(0, wi)
+                .join(" ")
+                .length +
+              (wi > 0 ? 1 : 0) +
+              ci
+            return (
+              <motion.span
+                key={ci}
+                className="inline-block"
+                initial={{ opacity: 0, y: -60, rotateX: -90 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                exit={{ opacity: 0, y: 40, rotateX: 60 }}
+                transition={{
+                  duration: 0.55,
+                  delay: baseDelay + globalIndex * 0.032,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                {char}
+              </motion.span>
+            )
+          })}
+          {/* word gap */}
+          {wi < text.split(" ").length - 1 && (
+            <span className="inline-block">&nbsp;</span>
+          )}
+        </span>
+      ))}
+    </span>
+  )
+}
 
-  const totalFlipSteps = flipFrames.length * 3;
-  const currentFlipFrame = flipFrames[flipStep % flipFrames.length];
+// ── Props ───────────────────────────────────────────────────────────────────
+interface HeroProps {
+  onOpenRegister?: () => void
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
+export default function Hero({ onOpenRegister }: HeroProps) {
+  const [active, setActive] = useState(0)
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
+    const id = setInterval(() => {
+      setActive((prev) => (prev + 1) % slides.length)
+    }, 6500)
+    return () => clearInterval(id)
+  }, [])
 
-    if (stage === "intro") {
-      if (visibleCount < 4) {
-        timer = setTimeout(() => {
-          setVisibleCount((prev) => prev + 1);
-        }, 650);
-      } else {
-        timer = setTimeout(() => {
-          setStage("merge");
-        }, 1400);
-      }
-    }
-
-    if (stage === "merge") {
-      timer = setTimeout(() => {
-        setStage("flip");
-        setFlipStep(0);
-      }, 1200);
-    }
-
-    if (stage === "flip") {
-      if (flipStep < totalFlipSteps - 1) {
-        timer = setTimeout(() => {
-          setFlipStep((prev) => prev + 1);
-        }, 220);
-      } else {
-        timer = setTimeout(() => {
-          setStage("wake");
-        }, 250);
-      }
-    }
-
-    if (stage === "wake") {
-      timer = setTimeout(() => {
-        setStage("teacher");
-      }, 1400);
-    }
-
-    if (stage === "teacher") {
-      timer = setTimeout(() => {
-        setStage("intro");
-        setVisibleCount(1);
-        setFlipStep(0);
-      }, 2200);
-    }
-
-    return () => clearTimeout(timer);
-  }, [stage, visibleCount, flipStep, totalFlipSteps]);
-
-  const introLayout = useMemo(
-    () => [
-      { left: "6%", top: "10%", rotate: -10, z: 10 },
-      { left: "53%", top: "12%", rotate: 8, z: 9 },
-      { left: "12%", top: "50%", rotate: -6, z: 8 },
-      { left: "58%", top: "50%", rotate: 10, z: 7 },
-    ],
-    []
-  );
+  const slide = slides[active]
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="mx-auto grid min-h-[calc(100vh-80px)] max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-20">
-        <div className="relative z-10">
-          <div className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
-            Trusted teaching documents for modern educators
-          </div>
+    <section
+      id="home"
+      className="relative isolate h-[92vh] min-h-[680px] overflow-hidden bg-black"
+    >
+      {/* ── Static background image with subtle Ken Burns ── */}
+      <motion.div
+        className="absolute inset-0"
+        initial={{ scale: 1 }}
+        animate={{ scale: 1.06 }}
+        transition={{ duration: 14, ease: "easeOut", repeat: Infinity, repeatType: "reverse" }}
+      >
+        <Image
+          src="/hero-slide-1.png"
+          alt="Teacher in a bright classroom"
+          fill
+          priority
+          className="object-cover object-center"
+        />
+      </motion.div>
 
-          <h1 className="mt-6 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Create professional teaching documents with ease
-          </h1>
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/88 via-black/55 to-black/15" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
 
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-            Generate schemes of work, lesson plans, records of work, and revision
-            questions faster with TeacherPoa.
-          </p>
+      {/* ── Content ── */}
+      <div className="relative z-10 mx-auto flex h-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
 
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"
+          {/* Eyebrow pill */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`eyebrow-${active}`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur"
             >
-              Get Started
-            </Link>
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              {slide.eyebrow}
+            </motion.div>
+          </AnimatePresence>
 
-            <a
-              href="#demo"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-base font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              View Demo
-            </a>
-          </div>
-
-          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Schemes</p>
-              <p className="mt-1 text-sm text-slate-600">Well organized</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Lesson Plans</p>
-              <p className="mt-1 text-sm text-slate-600">Ready faster</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Records</p>
-              <p className="mt-1 text-sm text-slate-600">Easy to manage</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">Revision</p>
-              <p className="mt-1 text-sm text-slate-600">Quick preparation</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-10">
-          <div className="relative mx-auto flex h-[320px] w-full max-w-[620px] items-center justify-center overflow-hidden rounded-[30px] bg-gradient-to-br from-blue-50 via-white to-orange-50 p-4 shadow-xl sm:h-[380px] lg:h-[460px]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.14),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.12),transparent_32%)]" />
-
-            <div className="absolute inset-0 z-0 opacity-60">
-              <div className="absolute left-[8%] top-[10%] h-28 w-28 rounded-full bg-blue-100 blur-3xl" />
-              <div className="absolute bottom-[8%] right-[10%] h-32 w-32 rounded-full bg-orange-100 blur-3xl" />
-            </div>
-
-            {(stage === "intro" || stage === "merge") && (
-              <div className="relative z-10 h-full w-full">
-                {files.map((file, index) => {
-                  const isVisible = index < visibleCount;
-                  const layout = introLayout[index];
-                  const isMain = file.id === "schemes";
-
-                  return (
-                    <motion.div
-                      key={file.id}
-                      initial={{
-                        opacity: 0,
-                        x: index % 2 === 0 ? -60 : 60,
-                        y: 40,
-                        scale: 0.85,
-                        rotate: layout.rotate,
-                      }}
-                      animate={
-                        stage === "intro"
-                          ? {
-                              opacity: isVisible ? 1 : 0,
-                              x: isVisible ? 0 : index % 2 === 0 ? -60 : 60,
-                              y: isVisible ? [0, -6, 0] : 40,
-                              scale: isVisible ? 1 : 0.85,
-                              rotate: layout.rotate,
-                              transition: {
-                                opacity: { duration: 0.55, ease: "easeOut" },
-                                x: { duration: 0.55, ease: "easeOut" },
-                                scale: { duration: 0.55, ease: "easeOut" },
-                                y: {
-                                  duration: 2.8,
-                                  repeat: Infinity,
-                                  repeatType: "mirror",
-                                  ease: "easeInOut",
-                                },
-                              },
-                            }
-                          : {
-                              opacity: isMain ? 1 : 0,
-                              left: "50%",
-                              top: "50%",
-                              x: "-50%",
-                              y: "-50%",
-                              scale: isMain ? 1.15 : 0.55,
-                              rotate: isMain ? -6 : 0,
-                              transition: {
-                                duration: 0.9,
-                                ease: [0.22, 1, 0.36, 1],
-                              },
-                            }
-                      }
-                      className="absolute"
-                      style={{
-                        left: stage === "intro" ? layout.left : undefined,
-                        top: stage === "intro" ? layout.top : undefined,
-                        zIndex: layout.z,
-                        width: "36%",
-                        maxWidth: 190,
-                      }}
-                    >
-                      <div className="relative aspect-[4/5] w-full drop-shadow-[0_18px_30px_rgba(15,23,42,0.16)]">
-                        <Image
-                          src={file.src}
-                          alt={file.alt}
-                          fill
-                          priority
-                          className="object-contain"
-                        />
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-
-            {stage === "flip" && (
-              <div className="relative z-10 flex h-full w-full items-center justify-center">
-                <motion.div
-                  initial={{ opacity: 0, y: -40, rotate: -8, scale: 0.95 }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    rotate: 0,
-                    scale: 1,
-                    transition: { duration: 0.55, ease: "easeOut" },
-                  }}
-                  className="relative h-full w-full"
-                >
-                  <Image
-                    src={currentFlipFrame}
-                    alt="TeacherPoa schemes file opening and flipping pages"
-                    fill
-                    priority
-                    className="object-contain"
-                  />
-                </motion.div>
-              </div>
-            )}
-
-            {stage === "wake" && (
-              <div className="relative z-10 flex h-full w-full items-center justify-center">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: 30, rotate: -6 }}
-                  animate={{
-                    opacity: [0, 1, 1, 0],
-                    scale: [0.8, 1.06, 1, 0.96],
-                    y: [30, -12, 0, 0],
-                    rotate: [-6, -2, 0, 0],
-                    transition: {
-                      duration: 1.35,
-                      times: [0, 0.25, 0.65, 1],
-                      ease: "easeInOut",
-                    },
-                  }}
-                  className="relative aspect-[4/5] w-[42%] max-w-[230px] drop-shadow-[0_22px_34px_rgba(15,23,42,0.18)]"
-                >
-                  <Image
-                    src="/hero/schemes-file.png"
-                    alt="TeacherPoa schemes of work file waking up"
-                    fill
-                    priority
-                    className="object-contain"
-                  />
-                </motion.div>
-              </div>
-            )}
+          {/* Main heading — letter fall */}
+          <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={`title-${active}`}
+                className="block"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FallingLetters text={slide.title} baseDelay={0} />
+              </motion.span>
+            </AnimatePresence>
 
             <AnimatePresence mode="wait">
-              {stage === "teacher" && (
-                <motion.div
-                  key="teacher"
-                  initial={{ opacity: 0, scale: 0.96, y: 24 }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    y: [0, -6, 0],
-                    transition: {
-                      opacity: { duration: 0.35 },
-                      scale: { duration: 0.35 },
-                      y: {
-                        duration: 2.2,
-                        repeat: Infinity,
-                        repeatType: "mirror",
-                        ease: "easeInOut",
-                      },
-                    },
-                  }}
-                  exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.25 } }}
-                  className="relative z-10 h-full w-full"
-                >
-                  <Image
-                    src="/hero/happy-teacher.png"
-                    alt="Happy teacher showing thumbs up"
-                    fill
-                    priority
-                    className="object-contain"
-                  />
-                </motion.div>
-              )}
+              <motion.span
+                key={`highlight-${active}`}
+                className="mt-1 block"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FallingLetters
+                  text={slide.highlight}
+                  className="bg-gradient-to-r from-[#60A5FA] to-[#34D399] bg-clip-text text-transparent"
+                  baseDelay={0.15}
+                />
+              </motion.span>
             </AnimatePresence>
+          </h1>
+
+          {/* Subtitle */}
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`sub-${active}`}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.6, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-6 max-w-xl text-lg leading-relaxed text-neutral-200"
+            >
+              {slide.subtitle}
+            </motion.p>
+          </AnimatePresence>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="mt-10 flex flex-col gap-4 sm:flex-row"
+          >
+            <Button
+              size="lg"
+              onClick={() => onOpenRegister?.()}
+              className="group h-14 bg-[#2563EB] px-8 text-white shadow-[0_10px_40px_rgba(37,99,235,0.35)] transition-all duration-300 hover:scale-[1.03] hover:bg-[#1D4ED8]"
+            >
+              Get Started Today
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Button>
+
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-14 border-white/40 bg-white/10 px-8 text-white backdrop-blur hover:bg-white/20 hover:text-white"
+            >
+              <Play className="mr-2 h-4 w-4 text-[#34D399]" />
+              Watch Demo
+            </Button>
+          </motion.div>
+
+          {/* Slide progress indicators — minimal dots only */}
+          <div className="mt-10 flex items-center gap-2">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                aria-label={`Slide ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  i === active
+                    ? "w-8 bg-white"
+                    : "w-1.5 bg-white/30 hover:bg-white/60"
+                }`}
+              />
+            ))}
           </div>
+
         </div>
       </div>
     </section>
-  );
+  )
 }

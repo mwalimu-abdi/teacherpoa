@@ -29,6 +29,21 @@ type ValidateBreaksResult =
   | { ok: true; breaks: BreakItem[] }
   | { ok: false; error: string }
 
+type PdfRowMeta = {
+  isBreak: boolean
+  startsNewWeek: boolean
+  endsWeek: boolean
+  weekGroup: string
+}
+
+type PdfCell =
+  | string
+  | {
+      content: string
+      colSpan?: number
+      styles?: Record<string, unknown>
+    }
+
 function safeParseArray(value: string | null | undefined): unknown[] {
   try {
     const parsed = JSON.parse(value || "[]")
@@ -220,6 +235,143 @@ function buildSchemeText(headers: string[], rows: string[][]) {
   return lines.join("\n")
 }
 
+function buildPdfRows(rows: string[][], headers: string[]) {
+  const { weekIndex, lessonIndex } = getColumnIndexes(headers)
+  const firstContentIndex = headers.findIndex(
+    (_, index) => index !== weekIndex && index !== lessonIndex
+  )
+
+  const pdfBody: PdfCell[][] = []
+  const meta: PdfRowMeta[] = []
+
+  let i = 0
+  let previousWeekGroup = ""
+
+  while (i < rows.length) {
+    const current = rows[i]
+    const currentWeek = String(current[weekIndex] || "")
+    const currentLesson = String(current[lessonIndex] || "")
+
+    const contentCells = current.map((cell, index) =>
+      index === weekIndex || index === lessonIndex ? "" : String(cell || "").trim()
+    )
+    const filledCells = contentCells.filter((cell) => cell !== "")
+    const isBreak =
+      filledCells.length > 0 && filledCells.every((cell) => cell === filledCells[0])
+
+    const weekGroup = currentWeek
+    const startsNewWeek = weekGroup !== previousWeekGroup
+
+    if (isBreak) {
+      const breakName = filledCells[0] || ""
+      const weekMatch = currentWeek.match(/\d+/)
+      const lessonStart = Number(currentLesson)
+
+      if (!weekMatch || !Number.isInteger(lessonStart)) {
+        const plainRow = [...current]
+        if (!startsNewWeek) plainRow[weekIndex] = ""
+
+        pdfBody.push(plainRow)
+        meta.push({
+          isBreak: true,
+          startsNewWeek,
+          endsWeek: false,
+          weekGroup,
+        })
+
+        previousWeekGroup = weekGroup || previousWeekGroup
+        i++
+        continue
+      }
+
+      const weekNumber = Number(weekMatch[0])
+      let j = i
+      let lessonEnd = lessonStart
+
+      while (j + 1 < rows.length) {
+        const next = rows[j + 1]
+        const nextWeek = String(next[weekIndex] || "")
+        const nextLesson = Number(next[lessonIndex])
+
+        const nextCells = next.map((cell, index) =>
+          index === weekIndex || index === lessonIndex ? "" : String(cell || "").trim()
+        )
+        const nextFilled = nextCells.filter((cell) => cell !== "")
+        const nextBreakName = nextFilled[0] || ""
+        const nextWeekMatch = nextWeek.match(/\d+/)
+
+        if (
+          !nextWeekMatch ||
+          Number(nextWeekMatch[0]) !== weekNumber ||
+          !Number.isInteger(nextLesson) ||
+          nextLesson !== lessonEnd + 1 ||
+          nextBreakName !== breakName
+        ) {
+          break
+        }
+
+        lessonEnd = nextLesson
+        j++
+      }
+
+      const lessonDisplay =
+        lessonStart === lessonEnd ? String(lessonStart) : `${lessonStart}-${lessonEnd}`
+
+      const row: PdfCell[] = []
+      row.push(startsNewWeek ? `WK ${weekNumber}` : "")
+      row.push(lessonDisplay)
+
+      if (firstContentIndex >= 0) {
+        row.push({
+          content: breakName,
+          colSpan: headers.length - firstContentIndex,
+          styles: {
+            halign: "center",
+            fontStyle: "bold",
+            valign: "middle",
+          },
+        })
+      }
+
+      pdfBody.push(row)
+      meta.push({
+        isBreak: true,
+        startsNewWeek,
+        endsWeek: false,
+        weekGroup: `WK ${weekNumber}`,
+      })
+
+      previousWeekGroup = `WK ${weekNumber}`
+      i = j + 1
+      continue
+    }
+
+    const normalRow = [...current]
+    if (!startsNewWeek) {
+      normalRow[weekIndex] = ""
+    }
+
+    pdfBody.push(normalRow)
+    meta.push({
+      isBreak: false,
+      startsNewWeek,
+      endsWeek: false,
+      weekGroup,
+    })
+
+    previousWeekGroup = weekGroup || previousWeekGroup
+    i++
+  }
+
+  for (let idx = 0; idx < meta.length; idx++) {
+    const currentWeekGroup = meta[idx].weekGroup
+    const nextWeekGroup = idx < meta.length - 1 ? meta[idx + 1].weekGroup : ""
+    meta[idx].endsWeek = idx === meta.length - 1 || nextWeekGroup !== currentWeekGroup
+  }
+
+  return { pdfBody, meta }
+}
+
 async function getTeacherSession() {
   const cookieStore = await cookies()
   const token = cookieStore.get("mh_session")?.value
@@ -314,7 +466,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const rows = buildGeneratedScheme(
+    const generatedRows = buildGeneratedScheme(
       headers,
       masterRows,
       lessonsPerWeek,
@@ -322,19 +474,28 @@ export async function POST(req: NextRequest) {
       validatedBreaks.breaks
     )
 
+    const { pdfBody, meta } = buildPdfRows(generatedRows, headers)
+    const { weekIndex } = getColumnIndexes(headers)
+    const currentYear = new Date().getFullYear()
+
     await prisma.generatedDocument.create({
       data: {
         teacherId: session.teacher.id,
-        subject,
+        year: currentYear,
         term,
-        weeks: totalWeeks,
-        lessonsPerWeek,
+        documentType: "Scheme of Work",
+        subject,
         classLevel: level,
         referenceBook,
+        weeks: totalWeeks,
+        lessonsPerWeek,
         breaksJson: JSON.stringify(validatedBreaks.breaks),
         schemeHeadersJson: JSON.stringify(headers),
-        schemeRowsJson: JSON.stringify(rows),
-        schemeText: buildSchemeText(headers, rows),
+        schemeRowsJson: JSON.stringify(generatedRows),
+        schemeText: buildSchemeText(headers, generatedRows),
+        lessonPlanText: null,
+        recordOfWorkText: null,
+        learnersProgressText: null,
         firstTeachingDay: "-",
         lastTeachingDay: "-",
         midtermBreak:
@@ -352,43 +513,102 @@ export async function POST(req: NextRequest) {
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
 
-    doc.setFontSize(16)
-    doc.text("SCHEME OF WORK", pageWidth / 2, 15, { align: "center" })
-
+    // Cover page
+    doc.setFont("times", "normal")
     doc.setFontSize(10)
-    doc.text(`Teacher: ${session.teacher.name}`, 14, 25)
-    doc.text(`School: ${session.teacher.school}`, 14, 31)
-    doc.text(`Subject: ${subject}`, 14, 37)
-    doc.text(`Class: ${level}`, 90, 25)
-    doc.text(`Term: ${term}`, 90, 31)
-    doc.text(`Lessons/Week: ${lessonsPerWeek}`, 90, 37)
-    doc.text(`Weeks: ${totalWeeks}`, 150, 25)
-    doc.text(`Reference Book: ${referenceBook || "-"}`, 150, 31)
+    doc.text(session.teacher.school, 14, 15)
+
+    doc.setFont("times", "bold")
+    doc.setFontSize(18)
+    doc.text("SCHEME OF WORK", pageWidth / 2, 70, { align: "center" })
+
+    doc.setFontSize(16)
+    doc.text(subject.toUpperCase(), pageWidth / 2, 84, { align: "center" })
+    doc.text(level.toUpperCase(), pageWidth / 2, 98, { align: "center" })
+    doc.text(term.toUpperCase(), pageWidth / 2, 112, { align: "center" })
+    doc.text(session.teacher.school.toUpperCase(), pageWidth / 2, 126, {
+      align: "center",
+    })
+
+    // Scheme pages
+    doc.addPage()
 
     autoTable(doc, {
-      startY: 45,
+      startY: 8,
       head: [headers],
-      body: rows,
+      body: pdfBody as any,
+      showHead: "firstPage",
+      theme: "grid",
       styles: {
         fontSize: 7,
-        cellPadding: 1.5,
+        cellPadding: 1.2,
         overflow: "linebreak",
+        textColor: 20,
+        lineColor: 0,
+        lineWidth: 0.1,
+        fillColor: false,
       },
       headStyles: {
         fontSize: 7,
+        fontStyle: "bold",
+        textColor: 0,
+        lineColor: 0,
+        lineWidth: 0.1,
+        fillColor: false,
+      },
+      bodyStyles: {
+        textColor: 20,
+        fillColor: false,
+      },
+      alternateRowStyles: {
+        fillColor: false,
+      },
+      margin: { top: 8, left: 8, right: 8, bottom: 14 },
+      didParseCell: (data) => {
+        if (data.section !== "body") return
+
+        const rowMeta = meta[data.row.index]
+        if (!rowMeta) return
+
+        if (data.column.index === weekIndex) {
+          data.cell.styles.lineWidth = {
+            top: rowMeta.startsNewWeek ? 0.1 : 0,
+            right: 0.1,
+            bottom: rowMeta.endsWeek ? 0.1 : 0,
+            left: 0.1,
+          }
+          return
+        }
+
+        data.cell.styles.lineWidth = {
+          top: 0.1,
+          right: 0.1,
+          bottom: 0.1,
+          left: 0.1,
+        }
       },
       didDrawPage: () => {
-        doc.setFontSize(8)
-        doc.setFont("helvetica", "italic")
-        doc.text(
-          `This document is created by ${session.teacher.name}`,
-          pageWidth / 2,
-          pageHeight - 7,
-          { align: "center" }
-        )
-        doc.setFont("helvetica", "normal")
+        const currentPage = doc.getCurrentPageInfo().pageNumber
+
+        if (currentPage > 1) {
+          doc.setFontSize(8)
+          doc.setFont("helvetica", "italic")
+          doc.text(
+            `This document is created by ${session.teacher.name}`,
+            pageWidth / 2,
+            pageHeight - 7,
+            { align: "center" }
+          )
+
+          doc.setFont("helvetica", "normal")
+          doc.text(
+            `Page ${currentPage - 1}`,
+            pageWidth / 2,
+            pageHeight - 3,
+            { align: "center" }
+          )
+        }
       },
-      margin: { top: 45, left: 8, right: 8, bottom: 12 },
     })
 
     const pdfArrayBuffer = doc.output("arraybuffer")

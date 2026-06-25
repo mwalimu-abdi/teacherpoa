@@ -32,19 +32,7 @@ type PreviewCell =
   | {
       content: string
       colSpan?: number
-      isBreak?: boolean
     }
-
-type PreviewMeta = {
-  teacherName: string
-  school: string
-  term: string
-  level: string
-  subject: string
-  lessonsPerWeek: number
-  totalWeeks: number
-  referenceBook: string
-}
 
 function safeParseArray(value: string | null | undefined): unknown[] {
   try {
@@ -229,15 +217,16 @@ function buildGeneratedScheme(
   return finalRows
 }
 
-function buildPreviewRows(rows: string[][], headers: string[]): PreviewCell[][] {
+function buildPreviewRows(rows: string[][], headers: string[]) {
   const { weekIndex, lessonIndex } = getColumnIndexes(headers)
   const firstContentIndex = headers.findIndex(
     (_, index) => index !== weekIndex && index !== lessonIndex
   )
 
   const previewRows: PreviewCell[][] = []
+
   let i = 0
-  let previousWeek = ""
+  let previousWeekGroup = ""
 
   while (i < rows.length) {
     const current = rows[i]
@@ -247,12 +236,12 @@ function buildPreviewRows(rows: string[][], headers: string[]): PreviewCell[][] 
     const contentCells = current.map((cell, index) =>
       index === weekIndex || index === lessonIndex ? "" : String(cell || "").trim()
     )
-
     const filledCells = contentCells.filter((cell) => cell !== "")
     const isBreak =
       filledCells.length > 0 && filledCells.every((cell) => cell === filledCells[0])
 
-    const startsNewWeek = currentWeek !== previousWeek
+    const weekGroup = currentWeek
+    const startsNewWeek = weekGroup !== previousWeekGroup
 
     if (isBreak) {
       const breakName = filledCells[0] || ""
@@ -263,7 +252,7 @@ function buildPreviewRows(rows: string[][], headers: string[]): PreviewCell[][] 
         const plainRow: PreviewCell[] = [...current]
         if (!startsNewWeek) plainRow[weekIndex] = ""
         previewRows.push(plainRow)
-        previousWeek = currentWeek || previousWeek
+        previousWeekGroup = weekGroup || previousWeekGroup
         i++
         continue
       }
@@ -301,20 +290,19 @@ function buildPreviewRows(rows: string[][], headers: string[]): PreviewCell[][] 
       const lessonDisplay =
         lessonStart === lessonEnd ? String(lessonStart) : `${lessonStart}-${lessonEnd}`
 
-      const row: PreviewCell[] = headers.map(() => "")
-      row[weekIndex] = startsNewWeek ? `WK ${weekNumber}` : ""
-      row[lessonIndex] = lessonDisplay
+      const row: PreviewCell[] = []
+      row.push(startsNewWeek ? `WK ${weekNumber}` : "")
+      row.push(lessonDisplay)
 
       if (firstContentIndex >= 0) {
-        row[firstContentIndex] = {
+        row.push({
           content: breakName,
           colSpan: headers.length - firstContentIndex,
-          isBreak: true,
-        }
+        })
       }
 
       previewRows.push(row)
-      previousWeek = `WK ${weekNumber}`
+      previousWeekGroup = `WK ${weekNumber}`
       i = j + 1
       continue
     }
@@ -325,7 +313,7 @@ function buildPreviewRows(rows: string[][], headers: string[]): PreviewCell[][] 
     }
 
     previewRows.push(normalRow)
-    previousWeek = currentWeek || previousWeek
+    previousWeekGroup = weekGroup || previousWeekGroup
     i++
   }
 
@@ -435,21 +423,19 @@ export async function POST(req: NextRequest) {
 
     const previewRows = buildPreviewRows(generatedRows, headers)
 
-    const meta: PreviewMeta = {
-      teacherName: session.teacher.name,
-      school: session.teacher.school,
-      term,
-      level,
-      subject,
-      lessonsPerWeek,
-      totalWeeks,
-      referenceBook: String(body.referenceBook || "").trim(),
-    }
-
     return NextResponse.json({
       headers,
       rows: previewRows,
-      meta,
+      meta: {
+        teacherName: session.teacher.name,
+        school: session.teacher.school,
+        term,
+        level,
+        subject,
+        lessonsPerWeek,
+        totalWeeks,
+        referenceBook: String(body.referenceBook || "").trim(),
+      },
     })
   } catch (error) {
     console.error("PREVIEW SCHEME ERROR:", error)

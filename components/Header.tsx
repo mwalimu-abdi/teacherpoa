@@ -1,135 +1,144 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { name: "Home", href: "#" },
-  { name: "Features", href: "#services" },
-  { name: "Demo", href: "#demo" },
-  { name: "Why Us", href: "#why-us" },
-  { name: "Reviews", href: "#reviews" },
-  { name: "Pricing", href: "#pricing" },
+  { label: "Home", href: "#home" },
+  { label: "Features", href: "#features" },
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Benefits", href: "#benefits" },
+  { label: "Testimonials", href: "#testimonials" },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  onLoginClick?: () => void;
+}
+
+export default function Header({ onLoginClick }: HeaderProps) {
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // 🔥 Close when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    if (open) {
-      document.addEventListener("click", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        
-        {/* LOGO */}
-        <Link href="#" className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Logo */}
+        <Link
+          href="/"
+          className="group flex items-center gap-3"
+          aria-label="TeacherPoa Home"
+        >
           <Image
             src="/logo.png"
-            alt="Teacher Poa Logo"
-            width={250}
-            height={200}
+            alt="TeacherPoa"
+            width={42}
+            height={42}
             priority
-            className="h-14 w-14 object-contain sm:h-16 sm:w-16"
+            className="h-10 w-10 object-contain transition-transform duration-300 group-hover:scale-105"
           />
-          <p className="text-lg font-bold text-gray-800 sm:text-xl">
-            Teacher Poa
-          </p>
+
+          <div>
+            <span className="text-lg font-semibold tracking-tight text-neutral-900">
+              Teacher
+              <span className="text-[#2563EB]">Poa</span>
+            </span>
+          </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Desktop Navigation */}
+        <nav
+          className="hidden items-center gap-2 md:flex"
+          aria-label="Main Navigation"
+        >
           {navLinks.map((link) => (
             <a
-              key={link.name}
+              key={link.label}
               href={link.href}
-              className="text-sm font-medium text-gray-700 transition hover:text-blue-600"
+              className="group relative px-4 py-2 text-sm font-medium text-neutral-600 transition-all duration-300 hover:text-[#2563EB]"
             >
-              {link.name}
+              {link.label}
+
+              {/* Bottom sliding line */}
+              <span className="absolute bottom-0 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-[#2563EB] transition-all duration-300 ease-out group-hover:w-[80%]" />
+
+              {/* Top sliding line */}
+              <span className="absolute top-0 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-[#60A5FA] opacity-0 transition-all duration-300 ease-out group-hover:w-[60%] group-hover:opacity-100" />
             </a>
           ))}
         </nav>
 
-        {/* Desktop Buttons */}
-        <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/login"
-            className="rounded-md border border-blue-500 px-4 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
+        {/* Desktop Actions */}
+        <div className="hidden items-center gap-2 md:flex">
+          <button
+            type="button"
+            onClick={onLoginClick}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 transition-all duration-300 hover:bg-neutral-100 hover:text-neutral-900"
           >
             Login
-          </Link>
+          </button>
 
           <Link
             href="/register"
-            className="rounded-md bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+            className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-300 hover:scale-[1.03] hover:bg-[#1D4ED8]"
           >
-            Signup
+            Get Started
           </Link>
         </div>
 
-        {/* Mobile Menu */}
-        <div className="relative md:hidden" ref={menuRef}>
-          <button
-            onClick={() => setOpen(!open)}
-            className="flex items-center justify-center rounded-md border border-gray-200 p-2 text-gray-700 transition hover:bg-gray-50"
-          >
+        {/* Mobile Menu Toggle */}
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-900 transition-colors hover:bg-neutral-100 md:hidden"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? "Close menu" : "Open menu"}
+        >
+          {open ? (
+            <X className="h-5 w-5" />
+          ) : (
             <Menu className="h-5 w-5" />
-          </button>
-
-          {/* 🔥 Full-width dropdown */}
-          {open && (
-            <div className="fixed left-0 top-[72px] w-full border-t border-gray-200 bg-white p-4 shadow-lg">
-              <nav className="flex flex-col gap-2">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className="rounded-md px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 hover:text-blue-600"
-                  >
-                    {link.name}
-                  </a>
-                ))}
-              </nav>
-
-              <div className="mt-4 flex flex-col gap-3">
-                <Link
-                  href="/login"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex w-full items-center justify-center rounded-md border border-blue-500 px-4 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50"
-                >
-                  Login
-                </Link>
-
-                <Link
-                  href="/register"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex w-full items-center justify-center rounded-md bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600"
-                >
-                  Signup
-                </Link>
-              </div>
-            </div>
           )}
-        </div>
+        </button>
       </div>
+
+      {/* Mobile Menu */}
+      {open && (
+        <div className="border-t border-neutral-200 bg-white md:hidden">
+          <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                {link.label}
+              </a>
+            ))}
+
+            <div className="mt-3 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onLoginClick?.();
+                }}
+                className="rounded-lg border border-neutral-300 px-4 py-2 text-center text-sm font-medium text-neutral-900"
+              >
+                Login
+              </button>
+
+              <Link
+                href="/register"
+                onClick={() => setOpen(false)}
+                className="rounded-lg bg-[#2563EB] px-4 py-2 text-center text-sm font-medium text-white"
+              >
+                Get Started
+              </Link>
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

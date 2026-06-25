@@ -97,9 +97,7 @@ function validateBreaks(
   }))
 
   for (const item of normalized) {
-    if (!item.name) {
-      return { ok: false, error: "Every break must have a name." }
-    }
+    if (!item.name) return { ok: false, error: "Every break must have a name." }
 
     if (
       !Number.isInteger(item.startWeek) ||
@@ -187,13 +185,8 @@ function buildGeneratedScheme(
     const rawLesson = String(sourceRow[lessonIndex] || "").trim()
     const absoluteLesson = Number(rawLesson)
 
-    if (!Number.isInteger(absoluteLesson) || absoluteLesson < 1) {
-      continue
-    }
-
-    if (absoluteLesson > maxSlots) {
-      break
-    }
+    if (!Number.isInteger(absoluteLesson) || absoluteLesson < 1) continue
+    if (absoluteLesson > maxSlots) break
 
     const weekNumber = Math.ceil(absoluteLesson / lessonsPerWeek)
     const lessonWithinWeek = ((absoluteLesson - 1) % lessonsPerWeek) + 1
@@ -224,7 +217,6 @@ function buildPreviewRows(rows: string[][], headers: string[]) {
   )
 
   const previewRows: PreviewCell[][] = []
-
   let i = 0
   let previousWeekGroup = ""
 
@@ -236,6 +228,7 @@ function buildPreviewRows(rows: string[][], headers: string[]) {
     const contentCells = current.map((cell, index) =>
       index === weekIndex || index === lessonIndex ? "" : String(cell || "").trim()
     )
+
     const filledCells = contentCells.filter((cell) => cell !== "")
     const isBreak =
       filledCells.length > 0 && filledCells.every((cell) => cell === filledCells[0])
@@ -269,6 +262,7 @@ function buildPreviewRows(rows: string[][], headers: string[]) {
         const nextCells = next.map((cell, index) =>
           index === weekIndex || index === lessonIndex ? "" : String(cell || "").trim()
         )
+
         const nextFilled = nextCells.filter((cell) => cell !== "")
         const nextBreakName = nextFilled[0] || ""
         const nextWeekMatch = nextWeek.match(/\d+/)
@@ -308,9 +302,7 @@ function buildPreviewRows(rows: string[][], headers: string[]) {
     }
 
     const normalRow: PreviewCell[] = [...current]
-    if (!startsNewWeek) {
-      normalRow[weekIndex] = ""
-    }
+    if (!startsNewWeek) normalRow[weekIndex] = ""
 
     previewRows.push(normalRow)
     previousWeekGroup = weekGroup || previousWeekGroup
@@ -349,13 +341,14 @@ export async function POST(req: NextRequest) {
     const term = String(body.term || "").trim()
     const level = String(body.level || "").trim()
     const subject = String(body.subject || "").trim()
+    const referenceBook = String(body.referenceBook || "").trim()
     const lessonsPerWeek = Number(body.lessonsPerWeek)
     const totalWeeks = Number(body.totalWeeks)
     const breaks = Array.isArray(body.breaks) ? body.breaks : []
 
-    if (!term || !level || !subject) {
+    if (!term || !level || !subject || !referenceBook) {
       return NextResponse.json(
-        { error: "Term, class and subject are required." },
+        { error: "Term, class, subject and reference book are required." },
         { status: 400 }
       )
     }
@@ -385,17 +378,20 @@ export async function POST(req: NextRequest) {
 
     const masterScheme = await prisma.masterScheme.findUnique({
       where: {
-        term_level_subject: {
+        term_level_subject_referenceBook: {
           term,
           level,
           subject,
+          referenceBook,
         },
       },
     })
 
     if (!masterScheme) {
       return NextResponse.json(
-        { error: "No master scheme found for this configuration." },
+        {
+          error: `No master scheme found for ${term}, ${level}, ${subject}, ${referenceBook}.`,
+        },
         { status: 404 }
       )
     }
@@ -432,9 +428,9 @@ export async function POST(req: NextRequest) {
         term,
         level,
         subject,
+        referenceBook,
         lessonsPerWeek,
         totalWeeks,
-        referenceBook: String(body.referenceBook || "").trim(),
       },
     })
   } catch (error) {

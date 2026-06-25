@@ -73,16 +73,17 @@ model GeneratedDocument {
 }
 
 model MasterScheme {
-  id          Int      @id @default(autoincrement())
-  term        String
-  level       String
-  subject     String
-  headersJson String   @default("[]")
-  rowsJson    String   @default("[]")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id            Int      @id @default(autoincrement())
+  term          String
+  level         String
+  subject       String
+  referenceBook String
+  headersJson   String   @default("[]")
+  rowsJson      String   @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
-  @@unique([term, level, subject], name: "term_level_subject")
+  @@unique([term, level, subject, referenceBook], name: "term_level_subject_referenceBook")
 }
 
 model SchoolClass {
@@ -218,10 +219,10 @@ model SchoolApplication {
 model Subscription {
   id               Int      @id @default(autoincrement())
   teacherId        Int
-  planType         String   // "TERMLY" or "ONE_DOCUMENT"
+  planType         String
   year             Int?
   term             String?
-  status           String   @default("pending") // pending, active, used, expired
+  status           String   @default("pending")
   amount           Int
   documentsAllowed Int?
   documentsUsed    Int      @default(0)
