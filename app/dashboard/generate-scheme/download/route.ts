@@ -436,15 +436,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const masterScheme = await prisma.masterScheme.findUnique({
-      where: {
-        term_level_subject: {
-          term,
-          level,
-          subject,
-        },
-      },
-    })
+    const masterScheme = await prisma.masterScheme.findFirst({
+  where: {
+    term,
+    level,
+    subject,
+  },
+})
 
     if (!masterScheme) {
       return NextResponse.json(
