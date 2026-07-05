@@ -1,0 +1,62 @@
+# Query: better-sqlite3
+# ContextLines: 1
+
+18 results - 4 files
+
+package-lock.json:
+    10        "dependencies": {
+    11:         "@prisma/adapter-better-sqlite3": "^7.4.2",
+    12          "@prisma/client": "^7.5.0",
+
+    30          "@types/bcryptjs": "^2.4.6",
+    31:         "@types/better-sqlite3": "^7.6.13",
+    32          "@types/node": "^20",
+
+  1349      },
+  1350:     "node_modules/@prisma/adapter-better-sqlite3": {
+  1351        "version": "7.5.0",
+  1352:       "resolved": "https://registry.npmjs.org/@prisma/adapter-better-sqlite3/-/adapter-better-sqlite3-7.5.0.tgz",
+  1353        "integrity": "sha512-ThP6y1cAZW/BdHuuTKzO+j8vzEzXDMZaDPmboJyrkdbJvO9LRiHdnG5LNKAht8YYwjHgQoq7G7NtKbaW7NebVQ==",
+
+  1356          "@prisma/driver-adapter-utils": "7.5.0",
+  1357:         "better-sqlite3": "^12.6.0"
+  1358        }
+
+  1846      },
+  1847:     "node_modules/@types/better-sqlite3": {
+  1848        "version": "7.6.13",
+  1849:       "resolved": "https://registry.npmjs.org/@types/better-sqlite3/-/better-sqlite3-7.6.13.tgz",
+  1850        "integrity": "sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==",
+
+  2856      },
+  2857:     "node_modules/better-sqlite3": 
+  2858        "version": "12.8.0",
+  2859:       "resolved": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-12.8.0.tgz",
+  2860        "integrity": "sha512-RxD2Vd96sQDjQr20kdP+F+dK/1OUNiVOl200vKBZY8u0vTwysfolF6Hq+3ZK2+h8My9YvZhHsF+RSGZW2VYrPQ==",
+
+  6804        "peerDependencies": {
+  6805:         "better-sqlite3": ">=9.0.0",
+  6806          "typescript": ">=5.4.0"
+
+  6808        "peerDependenciesMeta": {
+  6809:         "better-sqlite3": {
+  6810            "optional": true
+
+package.json:
+  13    "dependencies": {
+  14:     "@prisma/adapter-better-sqlite3": "^7.4.2",
+  15      "@prisma/client": "^7.5.0",
+
+  33      "@types/bcryptjs": "^2.4.6",
+  34:     "@types/better-sqlite3": "^7.6.13",
+  35      "@types/node": "^20",
+
+lib\prisma.ts:
+  1  import "dotenv/config"
+  2: import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
+  3  import { PrismaClient } from "@prisma/client"
+
+scripts\createAdmin.js:
+  2  const bcrypt = require("bcryptjs")
+  3: const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3")
+  4  const { PrismaClient } = require("@prisma/client")
