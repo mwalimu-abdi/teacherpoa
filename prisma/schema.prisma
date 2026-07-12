@@ -105,8 +105,8 @@ model ClassTeacherRole {
   roleType    String
   subject     String?
   createdAt   DateTime    @default(now())
-  teacher     Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   schoolClass SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher     Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@unique([classId, teacherId, roleType, subject], name: "class_teacher_role_subject")
 }
@@ -133,8 +133,8 @@ model AttendanceRecord {
   createdById Int
   createdAt   DateTime          @default(now())
   entries     AttendanceEntry[]
-  createdBy   Teacher           @relation("AttendanceCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   schoolClass SchoolClass       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy   Teacher           @relation("AttendanceCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
 
   @@unique([classId, date], name: "class_date_attendance")
 }
@@ -145,8 +145,8 @@ model AttendanceEntry {
   studentId Int
   status    String
   createdAt DateTime         @default(now())
-  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   record    AttendanceRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([recordId, studentId], name: "record_student_attendance")
 }

@@ -184,8 +184,9 @@ export default function LoginDrawer({
 
               {/* CREATE ACCOUNT */}
               <div className="mt-8 text-center">
-                <p className="text-sm text-slate-200">Don't have an account?</p>
-                <button
+<p className="text-sm text-slate-200">
+  Don&apos;t have an account?
+</p>                <button
                   type="button"
                   onClick={onOpenRegister}
                   className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
